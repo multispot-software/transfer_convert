@@ -61,9 +61,9 @@ Download the repository and run the scripts directly from the repo folder
 
 See also [conda_environment_linux.yml](https://github.com/tritemio/transfer_convert/blob/master/conda_environment_linux.yml).
 
-# Cite
+# How to cite
 
-If you use this code for a publication please cite as:
+If you use this code for a publication, please cite as:
 
 > 48-spot single-molecule FRET setup with periodic acceptor excitation <br>
 > A. Ingargiola, M. Segal, A. Gulinatti, I. Rech, I. Labanca, P. Maccagnani, M. Ghioni, S. Weiss, X. Michalet <br>
