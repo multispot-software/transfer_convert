@@ -109,7 +109,7 @@ def convert(filepath, basedir, inplace=False, singlespot=False):
     # Name of the output notebook
     if inplace:
         convert_notebook_name = convert_notebook_name_inplace
-        suffix = '_inplace'
+        suffix = ''
     else:
         convert_notebook_name = convert_notebook_name_tempfile
         suffix = '_tf'
@@ -137,8 +137,8 @@ def remove_temp_files(dat_fname):
     folder = dat_fname.parent
     assert remote_archive_basedir not in str(folder)
     assert local_archive_basedir not in str(folder)
-    print('* Removing temp files in "%s" (waiting 5 seconds to cancel) ' % folder,
-          end='', flush=True)
+    print('* Removing temp files in "%s" (waiting 5 seconds to cancel) '
+          % folder, end='', flush=True)
     try:
         for i in range(1, 6):
             time.sleep(1)
@@ -150,15 +150,12 @@ def remove_temp_files(dat_fname):
     else:
         # Remove files
         if not DRY_RUN:
-            os.remove(dat_fname)
-            extensions = ('_tf.hdf5', '_inplace.hdf5', '.yml',
-                          '_tf_conversion.ipynb', '_inplace_conversion.ipynb',
-                          '_tf.ipynb', '_inplace.ipynb')
+            extensions = ('.dat', '.yml', '.hdf5' , '_conversion.ipynb',
+                          '_tf.hdf5', '_tf_conversion.ipynb')
             for ext in extensions:
                 curr_file = Path(dat_fname.parent, dat_fname.stem + ext)
                 if curr_file.is_file():
                     os.remove(curr_file)
-
         print('  [COMPLETED FILE REMOVAL] %s. \n' % dat_fname.stem, flush=True)
 
 
@@ -179,7 +176,8 @@ def process(fname, dry_run=False, inplace=False, analyze=True, remove=True,
 
     timestamp()
     assert remote_origin_basedir in str(fname)
-    copied_fname = copy_files_to_ramdisk(fname, remote_origin_basedir, temp_basedir)
+    copied_fname = copy_files_to_ramdisk(fname, remote_origin_basedir,
+                                         temp_basedir)
 
     timestamp()
     assert temp_basedir in str(copied_fname)
@@ -195,7 +193,8 @@ def process(fname, dry_run=False, inplace=False, analyze=True, remove=True,
 
     if analyze:
         timestamp()
-        h5_fname_archive = replace_basedir(h5_fname, temp_basedir, local_archive_basedir)
+        h5_fname_archive = replace_basedir(h5_fname, temp_basedir,
+                                           local_archive_basedir)
         assert h5_fname_archive.is_file()
         run_analysis(h5_fname_archive, dry_run=dry_run, **analyze_kws)
 
