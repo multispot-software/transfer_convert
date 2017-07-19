@@ -7,7 +7,7 @@ default_notebook_name = 'smFRET-Quick-Test-Server.ipynb'
 
 
 def run_analysis(data_filename, input_notebook=None, save_html=False,
-                 working_dir=None, dry_run=False):
+                 working_dir=None, suffix='', dry_run=False):
     """
     Run analysis notebook on the passed data file.
 
@@ -24,12 +24,14 @@ def run_analysis(data_filename, input_notebook=None, save_html=False,
     print(' * Running analysis for %s' % (data_filename.stem), flush=True)
     if working_dir is None:
         working_dir = data_filename.parent
-    out_path_html = Path(working_dir, 'reports_html',
-                         data_filename.stem + '.html')
+    out_path_html = Path(data_filename.parent, 'reports_html',
+                         data_filename.stem + suffix + '.html')
+    out_path_nb = Path(data_filename.parent,
+                       data_filename.stem + suffix + '.html')
     out_path_html.parent.mkdir(exist_ok=True, parents=True)
     if not dry_run:
         nbrun.run_notebook(input_notebook, display_links=False,
-                           out_path_ipynb=data_filename.with_suffix('.ipynb'),
+                           out_path_ipynb=out_path_nb,
                            out_path_html=out_path_html,
                            nb_kwargs={'fname': str(data_filename)},
                            save_html=save_html, working_dir=working_dir)
@@ -53,11 +55,13 @@ if __name__ == '__main__':
                         help='Save a copy of the output notebooks in HTML.')
     parser.add_argument('--working-dir', metavar='PATH', default=None,
                         help='Working dir for the kernel executing the notebook.')
+    parser.add_argument('--suffix', metavar='STRING', default='',
+                        help='Notebook name suffix.')
     args = parser.parse_args()
 
     datafile = Path(args.datafile)
     assert datafile.is_file(), 'Data file not found: %s' % datafile
     notebook = Path(args.notebook)
     assert notebook.is_file(), 'Notebook not found: %s' % notebook
-    run_analysis(datafile, input_notebook=notebook,
+    run_analysis(datafile, input_notebook=notebook, suffix=args.suffix,
                  save_html=args.save_html, working_dir=args.working_dir)

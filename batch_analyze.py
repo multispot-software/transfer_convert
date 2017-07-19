@@ -14,7 +14,8 @@ def get_file_list(folder, glob='*.hdf5'):
 
 
 def batch_process(folder, nproc=4, notebook=None, save_html=False,
-                  working_dir='./', interactive=False, glob='*.hdf5'):
+                  working_dir='./', interactive=False, glob='*.hdf5',
+                  suffix=''):
     assert folder.is_dir(), 'Path not found: %s' % folder
 
     title_msg = 'Processing files in folder: %s' % folder.name
@@ -33,7 +34,8 @@ def batch_process(folder, nproc=4, notebook=None, save_html=False,
     with Pool(processes=nproc) as pool:
         try:
             pool.starmap(run_analysis,
-                         [(f, notebook, save_html, working_dir) for f in filelist])
+                         [(f, notebook, save_html, working_dir, suffix)
+                          for f in filelist])
         except KeyboardInterrupt:
             print('\n>>> Got keyboard interrupt.\n', flush=True)
     print('Closing subprocess pool.', flush=True)
@@ -125,6 +127,8 @@ if __name__ == '__main__':
            "accepted by pathlib.Path.glob().")
     parser.add_argument('--glob', metavar='PATTERN', default="'*.hdf5'",
                         help=msg)
+    parser.add_argument('--suffix', metavar='STRING', default='',
+                        help='Notebook name suffix.')
     args = parser.parse_args()
 
     folder = Path(args.folder)
@@ -136,7 +140,8 @@ if __name__ == '__main__':
     try:
         batch_process(folder, nproc=args.num_processes, notebook=args.notebook,
                       save_html=args.save_html, working_dir=args.working_dir,
-                      interactive=args.choose_files, glob=args.glob[1:-1])
+                      interactive=args.choose_files, glob=args.glob[1:-1],
+                      suffix=args.suffix)
         print('Batch analysis completed.', flush=True)
     except KeyboardInterrupt:
         sys.exit('\n\nExecution terminated.\n')
