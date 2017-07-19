@@ -27,7 +27,7 @@ def run_analysis(data_filename, input_notebook=None, save_html=False,
     out_path_html = Path(data_filename.parent, 'reports_html',
                          data_filename.stem + suffix + '.html')
     out_path_nb = Path(data_filename.parent,
-                       data_filename.stem + suffix + '.html')
+                       data_filename.stem + suffix + '.ipynb')
     out_path_html.parent.mkdir(exist_ok=True, parents=True)
     if not dry_run:
         nbrun.run_notebook(input_notebook, display_links=False,
