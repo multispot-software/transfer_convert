@@ -3,7 +3,7 @@
 from pathlib import Path
 import nbrun
 
-default_notebook_name = 'smFRET-Quick-Test-Server.ipynb'
+default_notebook_name = 'smFRET-PAX_single_pop.ipynb'
 
 
 def run_analysis(data_filename, input_notebook=None, save_html=False,
