@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn.apionly as sns
+import seaborn as sns
 
 # Spot with horizontal layout
 # first row goes from 0 to 11 (left to right)
