@@ -41,7 +41,7 @@ def filecopy(source, dest, msg=''):
 
 def copy_files_to_ramdisk(fname, orig_basedir, dest_basedir=temp_basedir):
     """
-    Copy a DAT and YML file pair to ramdisk folder.
+    Copy a raw data and YML file pair to ramdisk folder.
 
     Arguments:
         fname (Path): full path of DAT file to be copied.
@@ -51,7 +51,7 @@ def copy_files_to_ramdisk(fname, orig_basedir, dest_basedir=temp_basedir):
     dest_fname.parent.mkdir(parents=True, exist_ok=True)
 
     # Copy data
-    filecopy(fname, dest_fname, msg='DAT file to ramdisk')
+    filecopy(fname, dest_fname, msg='raw data file to ramdisk')
 
     # Copy metadata
     filecopy(fname.with_suffix('.yml'), dest_fname.with_suffix('.yml'),
@@ -86,48 +86,46 @@ def copy_files_to_archive(h5_fname, orig_fname, nb_conv_fname):
              msg='YAML file to archive')
 
     # Copy DAT file
-    filecopy(orig_fname, dest_orig_fname, msg='DAT file to archive')
+    filecopy(orig_fname, dest_orig_fname, msg='raw data file to archive')
 
     # Copy conversion notebook
     filecopy(nb_conv_fname, dest_nb_conv_fname,
              msg='conversion notebook to archive')
 
 
-def convert(filepath, basedir, inplace=False, singlespot=False):
+def convert(filepath, basedir, conversion_notebook=convert_notebook_name_inplace,
+            suffix=None):
     """
-    Convert a DAT file to Photon-HDF5.
+    Convert an input file to Photon-HDF5.
 
     Arguments:
-        filepath (Path): full path of DAT file to be converted.
+        filepath (Path): full path of data file to be converted.
     """
-    print('* Converting to Photon-HDF5: %s' % filepath.stem, flush=True)
+    print(f'* Converting to Photon-HDF5: {filepath.stem}', flush=True)
+    print(f"'-> Conversion notebook: {conversion_notebook}", flush=True)
+
     # Compute input file name relative to the basedir
     # This is the format of the input file-name required by
     # 48-spot conversion notebook
     fname_nb_input = str(replace_basedir(filepath, basedir, ''))
 
     # Name of the output notebook
-    if inplace:
-        convert_notebook_name = convert_notebook_name_inplace
-        suffix = ''
-    else:
-        convert_notebook_name = convert_notebook_name_tempfile
-        suffix = '_tf'
-    if singlespot:
-        convert_notebook_name = convert_notebook_name_singlespot
-        suffix = ''
-        fname_nb_input = str(filepath)
+    if suffix is None:
+        if 'tempfile' in conversion_notebook:
+            suffix = '_tf'
+        else:
+            suffix = ''
     nb_out_path = Path(filepath.parent,
-                       filepath.stem + '%s_conversion.ipynb' % suffix)
+                       filepath.stem + f'{suffix}_conversion.ipynb')
 
     # Convert file to Photon-HDF5
     if not DRY_RUN:
-        run_notebook(convert_notebook_name, out_path_ipynb=nb_out_path,
+        run_notebook(conversion_notebook, out_path_ipynb=nb_out_path,
                      nb_kwargs={'fname': fname_nb_input}, hide_input=False)
 
-    print('  [COMPLETED CONVERSION] %s.\n' % filepath.stem, flush=True)
+    print('  [COMPLETED CONVERSION] {filepath.stem}.\n', flush=True)
 
-    h5_fname = Path(filepath.parent, filepath.stem + '%s.hdf5' % suffix)
+    h5_fname = Path(filepath.parent, filepath.stem + f'{suffix}.hdf5')
     return h5_fname, nb_out_path
 
 
@@ -159,20 +157,19 @@ def remove_temp_files(dat_fname):
         print('  [COMPLETED FILE REMOVAL] %s. \n' % dat_fname.stem, flush=True)
 
 
-def process(fname, dry_run=False, inplace=False, analyze=True, remove=True,
-            analyze_kws=None, singlespot=False):
+def process(fname, dry_run=False, analyze=True, analyze_kws=None, remove=True,
+            conversion_notebook=convert_notebook_name_inplace):
     """
-    This is the main function for copying the input DAT file to the temp
+    This is the main function for copying the input data file to the temp
     folder, converting it to Photon-HDF5, copying all the files to the
-    archive folder and (optionally) running the smFRET analysis.
+    archive folder and (optionally) running an analysis notebook.
     """
     global DRY_RUN
     DRY_RUN = DRY_RUN or dry_run
 
     assert fname.is_file(), 'File not found: %s' % fname
 
-    title_msg = 'PROCESSING: %s' % fname.name
-    print('\n\n%s' % title_msg, flush=True)
+    print(f'\n\nPROCESSING: {fname.name}', flush=True)
 
     timestamp()
     assert remote_origin_basedir in str(fname)
@@ -182,7 +179,7 @@ def process(fname, dry_run=False, inplace=False, analyze=True, remove=True,
     timestamp()
     assert temp_basedir in str(copied_fname)
     h5_fname, nb_conv_fname = convert(copied_fname, temp_basedir,
-                                      inplace=inplace, singlespot=singlespot)
+                                      conversion_notebook=conversion_notebook)
 
     timestamp()
     copy_files_to_archive(h5_fname, copied_fname, nb_conv_fname)
@@ -195,23 +192,23 @@ def process(fname, dry_run=False, inplace=False, analyze=True, remove=True,
         timestamp()
         h5_fname_archive = replace_basedir(h5_fname, temp_basedir,
                                            local_archive_basedir)
-        assert h5_fname_archive.is_file()
+        assert h5_fname_archive.is_file(), f'File not found: {h5_fname_archive}'
         run_analysis(h5_fname_archive, dry_run=dry_run, **analyze_kws)
 
     timestamp()
     return fname
 
 
-def process_int(fname, dry_run=False, inplace=False, analyze=True, remove=True,
-                analyze_kws=None, singlespot=False):
+def process_int(fname, dry_run=False, analyze=True, analyze_kws=None, 
+                remove=True, conversion_notebook=convert_notebook_name_inplace):
     ret = None
     try:
-        ret = process(fname, dry_run=dry_run, inplace=inplace, analyze=analyze,
-                      remove=remove, analyze_kws=analyze_kws,
-                      singlespot=singlespot)
+        ret = process(fname, dry_run=dry_run, analyze=analyze, 
+                      analyze_kws=analyze_kws,
+                      conversion_notebook=conversion_notebook)
     except Exception as e:
-        print('Worker for "%s" got exception:\n%s' % (fname, str(e)), flush=True)
-    print('Completed processing for "%s" (worker)' % fname, flush=True)
+        print(f'Worker for "{fname}" got exception:\n{str(e)}', flush=True)
+    print(f'Completed processing for "{fname}" (worker)', flush=True)
     return ret
 
 
@@ -230,17 +227,13 @@ if __name__ == '__main__':
     parser.add_argument('--dry-run', action='store_true', help=msg)
     parser.add_argument('--save-html', action='store_true',
                         help='Save a copy of the output notebooks in HTML.')
-    parser.add_argument('--tempfile', action='store_true',
-                        help='Convert to Photon-HDF5 creating a temporary '
-                             'intermediate file. Without this option no '
-                             'temporary file is created.')
-    parser.add_argument('--singlespot', action='store_true',
-                        help=('Convert SM files of 1-spot smFRET-usALEX data. '
-                              'Without this option, convert DAT files of '
-                              ' 48-spot smFRET [pax or 1-laser] data.'))
+    msg = ("Notebook used for conversion to Photon-HDF5. If not specified, the "
+           f"default is '{convert_notebook_name_inplace}'")
+    parser.add_argument('--conversion-notebook', metavar='CONV_NB_NAME',
+                        default=convert_notebook_name_inplace, help=msg)
     parser.add_argument('--analyze', action='store_true',
-                        help='Run smFRET analysis after files are converted.')
-    msg = ("Notebook used for smFRET data analysis. If not specified, the "
+                        help='Run analysis after files are converted.')
+    msg = ("Notebook used for data analysis. If not specified, the "
            "default is '%s'." % default_notebook_name)
     parser.add_argument('--notebook', metavar='NB_NAME',
                         default=default_notebook_name, help=msg)
@@ -254,7 +247,7 @@ if __name__ == '__main__':
 
     analyze_kws = dict(input_notebook=args.notebook, save_html=args.save_html,
                        working_dir=args.working_dir)
-    process_int(datafile, dry_run=args.dry_run, inplace=not args.tempfile,
+    process_int(datafile, dry_run=args.dry_run, 
                 analyze=args.analyze, analyze_kws=analyze_kws,
-                singlespot=args.singlespot)
+                conversion_notebook=args.conversion_notebook)
     print('Terminated processing of "%s"' % datafile, flush=True)

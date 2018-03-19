@@ -52,14 +52,15 @@ def start_monitoring(folder, dry_run=False, nproc=4, inplace=False,
     print('Closing subprocess pool.', flush=True)
 
 
-def batch_process(folder, dry_run=False, nproc=4, inplace=False, analyze=True,
-                  remove=True, analyze_kws=None, singlespot=False):
+def batch_process(folder, dry_run=False, nproc=4, analyze=True,
+                  analyze_kws=None, remove=True,
+                  conversion_notebook=transfer.convert_notebook_name_inplace):
     assert folder.is_dir(), 'Path not found: %s' % folder
 
     title_msg = 'Processing files in folder: %s' % folder.name
     print('\n\n%s' % title_msg)
 
-    glob = '*.sm' if singlespot else '*.dat'
+    glob = '*.sm' if ' SM' in conversion_notebook else '*.dat'
     filelist = get_new_files(folder, glob=glob)
 
     print('- The following files will be processed in batch:')
@@ -67,7 +68,7 @@ def batch_process(folder, dry_run=False, nproc=4, inplace=False, analyze=True,
         print('  %s' % f)
     print()
 
-    args = [dry_run, inplace, analyze, remove, analyze_kws, singlespot]
+    args = [dry_run, analyze, analyze_kws, remove, conversion_notebook]
     with Pool(processes=nproc) as pool:
         try:
             pool.starmap(transfer.process_int, [[f] + args for f in filelist])
@@ -107,12 +108,12 @@ if __name__ == '__main__':
     parser.add_argument('--num-processes', '-n', metavar='N', type=int,
                         default=4, help='Number of multiprocess workers to '
                                         'use. Default 4.')
+    msg = ("Notebook used for conversion to Photon-HDF5. If not specified, the "
+           f"default is '{transfer.convert_notebook_name_inplace}'")
+    parser.add_argument('--conversion-notebook', metavar='CONV_NB_NAME',
+                        default=transfer.convert_notebook_name_inplace, help=msg)
     parser.add_argument('--analyze', action='store_true',
                         help='Run smFRET analysis after files are converted.')
-    parser.add_argument('--singlespot', action='store_true',
-                        help=('Convert SM files of 1-spot smFRET-usALEX data. '
-                              'Without this option, convert DAT files of '
-                              ' 48-spot smFRET [pax or 1-laser] data.'))
     msg = ("Notebook used for smFRET data analysis. If not specified, the "
            "default is '%s'." % transfer.default_notebook_name)
     parser.add_argument('--notebook', metavar='NB_NAME',
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     analyze_kws = dict(input_notebook=args.notebook, save_html=args.save_html,
                        working_dir=args.working_dir)
     kwargs = dict(dry_run=args.dry_run, nproc=args.num_processes,
-                  inplace=not args.tempfile, singlespot=args.singlespot,
+                  conversion_notebook=args.conversion_notebook,
                   analyze=args.analyze, analyze_kws=analyze_kws,
                   remove=not args.keep_temp_files)
     if args.monitor:
