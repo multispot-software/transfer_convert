@@ -123,7 +123,7 @@ def convert(filepath, basedir, conversion_notebook=convert_notebook_name_inplace
         run_notebook(conversion_notebook, out_path_ipynb=nb_out_path,
                      nb_kwargs={'fname': fname_nb_input}, hide_input=False)
 
-    print('  [COMPLETED CONVERSION] {filepath.stem}.\n', flush=True)
+    print('  [COMPLETED CONVERSION] "{filepath.name}".\n', flush=True)
 
     h5_fname = Path(filepath.parent, filepath.stem + f'{suffix}.hdf5')
     return h5_fname, nb_out_path
@@ -154,7 +154,7 @@ def remove_temp_files(dat_fname):
                 curr_file = Path(dat_fname.parent, dat_fname.stem + ext)
                 if curr_file.is_file():
                     os.remove(curr_file)
-        print('  [COMPLETED FILE REMOVAL] %s. \n' % dat_fname.stem, flush=True)
+        print(f'  [COMPLETED FILE REMOVAL] "{dat_fname.name}". \n' flush=True)
 
 
 def process(fname, dry_run=False, analyze=True, analyze_kws=None, remove=True,
